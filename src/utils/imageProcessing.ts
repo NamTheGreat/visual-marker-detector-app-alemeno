@@ -1,4 +1,5 @@
 import { Dimensions } from 'react-native';
+import { manipulateAsync, ImageResult } from 'expo-image-manipulator';
 
 /**
  * Image Processing Utilities for marker extraction and transformation
@@ -21,144 +22,131 @@ export interface TransformMatrix {
   m22: number;
 }
 
+export interface ProcessedMarker {
+  imageBase64: string;
+  width: number;
+  height: number;
+}
+
 /**
- * Correct perspective distortion using homography transformation
- * Solves for the transformation matrix that maps source points to destination
+ * Process marker image: crop, rotate, and resize to exactly 300x300
  */
-export function perspectiveTransform(
-  sourcePoints: Point[],
-  destWidth: number,
-  destHeight: number
-): TransformMatrix {
-  // Standard 4-point perspective transform (homography)
-  // In production, this would use OpenCV's getPerspectiveTransform
-  
-  if (sourcePoints.length !== 4) {
-    // Return identity matrix if not enough points
+export async function processMarkerImage(
+  base64Image: string,
+  markerBounds?: { x: number; y: number; width: number; height: number },
+  rotationAngle: number = 0
+): Promise<ProcessedMarker> {
+  try {
+    const actions = [];
+
+    if (markerBounds) {
+      actions.push({
+        crop: {
+          originX: Math.max(0, markerBounds.x),
+          originY: Math.max(0, markerBounds.y),
+          width: markerBounds.width,
+          height: markerBounds.height,
+        },
+      });
+    }
+
+    const normalizedAngle = ((rotationAngle % 360) + 360) % 360;
+    if (normalizedAngle !== 0) {
+      actions.push({ rotate: normalizedAngle });
+    }
+
+    actions.push({ resize: { width: 300, height: 300 } });
+
+    const uri = `data:image/jpeg;base64,${base64Image}`;
+    const result: ImageResult = await manipulateAsync(uri, actions, { compress: 0.9 });
+
+    const processedBase64 = result.uri.includes(',') ? result.uri.split(',')[1] : base64Image;
+
     return {
-      m00: 1, m01: 0, m02: 0,
-      m10: 0, m11: 1, m12: 0,
-      m20: 0, m21: 0, m22: 1,
+      imageBase64: processedBase64,
+      width: 300,
+      height: 300,
+    };
+  } catch (error) {
+    console.error('Error processing marker image:', error);
+    return {
+      imageBase64: base64Image,
+      width: 300,
+      height: 300,
     };
   }
-
-  // Destination points (perfect rectangle)
-  const destPoints: Point[] = [
-    { x: 0, y: 0 },
-    { x: destWidth, y: 0 },
-    { x: destWidth, y: destHeight },
-    { x: 0, y: destHeight },
-  ];
-
-  // Solve 8-point homography problem using DLT (Direct Linear Transform)
-  // This is a simplified implementation - production code would use proper linear algebra
-
-  const A: number[][] = [];
-  for (let i = 0; i < 4; i++) {
-    const sx = sourcePoints[i].x;
-    const sy = sourcePoints[i].y;
-    const dx = destPoints[i].x;
-    const dy = destPoints[i].y;
-
-    A.push([-sx, -sy, -1, 0, 0, 0, sx * dx, sy * dx, dx]);
-    A.push([0, 0, 0, -sx, -sy, -1, sx * dy, sy * dy, dy]);
-  }
-
-  // Simplified: return identity matrix as placeholder
-  // In production, solve the system using SVD
-  return {
-    m00: 1,
-    m01: 0,
-    m02: 0,
-    m10: 0,
-    m11: 1,
-    m12: 0,
-    m20: 0,
-    m21: 0,
-    m22: 1,
-  };
 }
 
 /**
- * Apply perspective transformation to extract marker
- * Takes base64 image and returns transformed base64 image
+ * Resize image to exact dimensions using expo-image-manipulator
  */
-export function applyPerspectiveTransform(
-  base64Image: string,
-  transformMatrix: TransformMatrix,
-  width: number,
-  height: number
-): Promise<string> {
-  // This will be implemented with native module
-  // For now, return the original image
-  return Promise.resolve(base64Image);
-}
-
-/**
- * Resize image to exact dimensions
- * Critical for ensuring 300x300px output
- */
-export function resizeImage(
+export async function resizeImage(
   base64Image: string,
   targetWidth: number,
   targetHeight: number
 ): Promise<string> {
-  // This will be implemented with native image processing module
-  // Could use: expo-image-manipulator, react-native-image-resizer, or native bridge
-  return Promise.resolve(base64Image);
+  try {
+    const uri = `data:image/jpeg;base64,${base64Image}`;
+    const result: ImageResult = await manipulateAsync(
+      uri,
+      [{ resize: { width: targetWidth, height: targetHeight } }],
+      { compress: 0.9 }
+    );
+    return result.uri.includes(',') ? result.uri.split(',')[1] : base64Image;
+  } catch (error) {
+    console.error('Error resizing image:', error);
+    return base64Image;
+  }
 }
 
 /**
- * Rotate image by angle (in degrees)
- * Used for orientation correction
+ * Rotate image by angle (in degrees) using expo-image-manipulator
  */
-export function rotateImage(
+export async function rotateImage(
   base64Image: string,
   angleInDegrees: number
 ): Promise<string> {
-  // This will be implemented with native module
-  // Normalize angle to 0-360
-  const normalizedAngle = angleInDegrees % 360;
-  
-  if (normalizedAngle === 0) {
-    return Promise.resolve(base64Image);
+  try {
+    const normalizedAngle = ((angleInDegrees % 360) + 360) % 360;
+    if (normalizedAngle === 0) {
+      return base64Image;
+    }
+
+    const uri = `data:image/jpeg;base64,${base64Image}`;
+    const result: ImageResult = await manipulateAsync(
+      uri,
+      [{ rotate: normalizedAngle }],
+      { compress: 0.9 }
+    );
+    return result.uri.includes(',') ? result.uri.split(',')[1] : base64Image;
+  } catch (error) {
+    console.error('Error rotating image:', error);
+    return base64Image;
   }
-
-  // TODO: Implement rotation using native module
-  return Promise.resolve(base64Image);
-}
-
-/**
- * Calculate similarity between two markers (for deduplication)
- * Returns value between 0-1 where 1 is identical
- */
-export function calculateImageSimilarity(
-  image1Base64: string,
-  image2Base64: string
-): number {
-  // Simplified implementation - compare using perceptual hash
-  // In production, use structural similarity (SSIM) or pHash
-  
-  // For now, compare string lengths as simple heuristic
-  const diff = Math.abs(image1Base64.length - image2Base64.length);
-  const maxLen = Math.max(image1Base64.length, image2Base64.length);
-  
-  return Math.max(0, 1 - (diff / maxLen) * 0.5);
 }
 
 /**
  * Crop image precisely to remove padding
- * Essential for tight extraction with zero padding
  */
-export function cropImage(
+export async function cropImage(
   base64Image: string,
   x: number,
   y: number,
   width: number,
   height: number
 ): Promise<string> {
-  // This will be implemented with native module
-  return Promise.resolve(base64Image);
+  try {
+    const uri = `data:image/jpeg;base64,${base64Image}`;
+    const result: ImageResult = await manipulateAsync(
+      uri,
+      [{ crop: { originX: Math.max(0, x), originY: Math.max(0, y), width, height } }],
+      { compress: 0.9 }
+    );
+    return result.uri.includes(',') ? result.uri.split(',')[1] : base64Image;
+  } catch (error) {
+    console.error('Error cropping image:', error);
+    return base64Image;
+  }
 }
 
 /**
@@ -166,7 +154,6 @@ export function cropImage(
  * Constrained to 2000-3000px as per requirements
  */
 export function getOptimalCameraResolution(): { width: number; height: number } {
-  // Use 2500x2500 for balance between quality and performance
   return {
     width: 2500,
     height: 2500,
@@ -182,13 +169,11 @@ export function validateMarkerDimensions(
   height: number,
   tolerance: number = 0
 ): boolean {
-  // For final output, must be exactly 300x300px (no tolerance)
   return width === 300 && height === 300;
 }
 
 /**
  * Calculate contrast of image region
- * Used to detect if marker is visible/clear enough
  */
 export function calculateContrast(
   pixelData: Uint8Array,

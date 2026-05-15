@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -16,6 +16,8 @@ interface LiveCameraFeedProps {
   isProcessing: boolean;
 }
 
+const CAPTURE_INTERVAL = 1500;
+
 export const LiveCameraFeed: React.FC<LiveCameraFeedProps> = ({
   onMarkerDetected,
   detectedCount,
@@ -25,15 +27,64 @@ export const LiveCameraFeed: React.FC<LiveCameraFeedProps> = ({
   const cameraRef = useRef<CameraView>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const frameProcessingRef = useRef(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { width, height } = getOptimalCameraResolution();
   const screenDimensions = Dimensions.get('window');
+
+  const captureFrame = useCallback(async () => {
+    if (!cameraRef.current || frameProcessingRef.current || isProcessing) {
+      return;
+    }
+
+    if (detectedCount >= 20) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
+    }
+
+    try {
+      frameProcessingRef.current = true;
+      
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.6,
+        base64: true,
+        skipProcessing: false,
+      });
+
+      if (photo?.base64) {
+        onMarkerDetected(photo.base64);
+      }
+    } catch (error) {
+      console.error('Error capturing frame:', error);
+    } finally {
+      frameProcessingRef.current = false;
+    }
+  }, [onMarkerDetected, isProcessing, detectedCount]);
 
   useEffect(() => {
     if (!permission) {
       requestPermission();
     }
   }, [permission]);
+
+  useEffect(() => {
+    if (cameraReady && detectedCount < 20 && !isProcessing) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      intervalRef.current = setInterval(captureFrame, CAPTURE_INTERVAL);
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [cameraReady, detectedCount, isProcessing, captureFrame]);
 
   if (!permission) {
     return (
