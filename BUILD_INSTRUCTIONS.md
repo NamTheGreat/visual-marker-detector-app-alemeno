@@ -73,7 +73,7 @@ cd android
 
 **Output Location**:
 - `android/app/build/outputs/bundle/release/app-release.aab`
-- `android/app/build/outputs/apk/release/app-release.apk`
+- `apk/app-release.apk`
 
 ## Quick Build Steps
 
@@ -100,7 +100,7 @@ expo build:android -t apk
 
 ### Step 5: Install on Device
 ```bash
-adb install path-to-app-release.apk
+adb install apk/app-release.apk
 ```
 
 Or use Android Studio emulator to install.
@@ -157,17 +157,17 @@ expo build:android -t apk --keystore-path ./my-release-key.keystore
 
 ### Check APK Details
 ```bash
-aapt dump badging app-release.apk
+aapt dump badging apk/app-release.apk
 ```
 
 ### Verify Permissions
 ```bash
-aapt dump permissions app-release.apk
+aapt dump permissions apk/app-release.apk
 ```
 
 ### Install and Test
 ```bash
-adb install -r app-release.apk
+adb install -r apk/app-release.apk
 adb logcat | grep MarkerDetection
 ```
 
@@ -175,7 +175,7 @@ adb logcat | grep MarkerDetection
 
 ### 1. Direct Install (for testing)
 ```bash
-adb install app-release.apk
+adb install apk/app-release.apk
 ```
 
 ### 2. Google Play Store
@@ -251,7 +251,7 @@ For production builds, set in `app.json`:
 emulator -avd Pixel_4_API_30
 
 # Install APK
-adb install -r app-release.apk
+adb install -r apk/app-release.apk
 
 # Launch app
 adb shell am start -n com.alemeno.markerdetection/.MainActivity
@@ -260,7 +260,7 @@ adb shell am start -n com.alemeno.markerdetection/.MainActivity
 ### On Physical Device
 1. Enable USB Debugging: Settings → Developer Options → USB Debugging
 2. Connect device via USB
-3. Run: `adb install -r app-release.apk`
+3. Run: `adb install -r apk/app-release.apk`
 4. Check installation: `adb shell pm list packages | grep markerdetection`
 
 ## Continuous Deployment

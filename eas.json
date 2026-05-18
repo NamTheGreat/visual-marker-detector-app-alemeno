@@ -5,14 +5,17 @@
   "build": {
     "production": {
       "node": "18.0.0",
-      "npm": "9.0.0",
       "env": {
         "REACT_APP_ENV": "production"
       }
     },
+    "apk": {
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "preview": {
       "node": "18.0.0",
-      "npm": "9.0.0",
       "env": {
         "REACT_APP_ENV": "preview"
       }
@@ -20,13 +23,6 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal"
-    }
-  },
-  "submit": {
-    "production": {
-      "android": {
-        "serviceAccount": "@legacy"
-      }
     }
   }
 }

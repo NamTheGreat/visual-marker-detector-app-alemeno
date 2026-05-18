@@ -13,7 +13,7 @@
 
 2. **Install on Device**
    ```bash
-   adb install -r app-release.apk
+   adb install -r apk/app-release.apk
    ```
 
 3. **Or Install via File Manager**
@@ -124,7 +124,7 @@
 **Problem**: App crashes
 - **Solution**:
   - Uninstall: `adb uninstall com.alemeno.markerdetection`
-  - Reinstall: `adb install -r app-release.apk`
+  - Reinstall: `adb install -r apk/app-release.apk`
   - Clear app data in Settings
 
 ## Features

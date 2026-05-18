@@ -281,7 +281,7 @@ cd android && ./gradlew assembleRelease
 
 ### Installation
 ```bash
-adb install -r app-release.apk
+adb install -r apk/app-release.apk
 ```
 
 ---

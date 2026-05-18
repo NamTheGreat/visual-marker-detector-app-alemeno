@@ -177,7 +177,7 @@ chmod +x build.sh
 
 ### Post-Build Installation
 ```bash
-adb install -r app-release.apk
+adb install -r apk/app-release.apk
 ```
 
 ---
@@ -326,7 +326,7 @@ expo build:android --type apk
 
 ### To Install APK
 ```bash
-adb install -r app-release.apk
+adb install -r apk/app-release.apk
 ```
 
 ---

@@ -106,7 +106,7 @@ npx expo build:android --type apk
 # 5. Download APK from URL provided in terminal
 
 # 6. Install on device
-adb install -r app-release.apk
+adb install -r apk/app-release.apk
 
 # 7. OR install on emulator
 adb -s emulator-5554 install app-release.apk
