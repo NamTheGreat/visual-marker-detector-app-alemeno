@@ -19,9 +19,6 @@ const MARKER_SIZE = 300;
 const COLUMNS = 4;
 
 export const MarkerGrid: React.FC<MarkerGridProps> = ({ markers, onRetake }) => {
-  const screenWidth = Dimensions.get('window').width;
-  const markerDisplaySize = Math.floor((screenWidth - 48) / COLUMNS);
-
   const renderMarkerItem = ({ item, index }: { item: DetectedMarker; index: number }) => (
     <View key={item.id} style={styles.markerContainer}>
       <Image
@@ -29,8 +26,8 @@ export const MarkerGrid: React.FC<MarkerGridProps> = ({ markers, onRetake }) => 
         style={[
           styles.markerImage,
           {
-            width: markerDisplaySize,
-            height: markerDisplaySize,
+            width: MARKER_SIZE,
+            height: MARKER_SIZE,
           },
         ]}
       />

@@ -427,6 +427,7 @@ class MarkerDetectionService {
 
   /**
    * Calculate rotation angle based on corner square position
+   * The corner square is in top-left when marker is at 0 degrees
    */
   private calculateRotationAngle(
     contour: { x: number; y: number; width: number; height: number },
@@ -435,13 +436,71 @@ class MarkerDetectionService {
     imageWidth: number,
     imageHeight: number
   ): number {
-    // TODO: Implement corner square detection to calculate rotation
-    // For now, return 0. This would involve:
-    // 1. Finding the corner square in the marker
-    // 2. Determining its rotation relative to expected position
-    // 3. Calculating the angle to rotate for correction
+    const { x, y, width, height } = contour;
+    const cornerSize = Math.max(5, Math.floor(width / 7));
+    const margin = Math.floor(width / 14);
 
-    return 0;
+    const corners = [
+      { name: 'top-left', startX: x + margin, startY: y + margin },
+      { name: 'top-right', startX: x + width - cornerSize - margin, startY: y + margin },
+      { name: 'bottom-left', startX: x + margin, startY: y + height - cornerSize - margin },
+      { name: 'bottom-right', startX: x + width - cornerSize - margin, startY: y + height - cornerSize - margin },
+    ];
+
+    let darkestCorner = '';
+    let darkestValue = 255;
+
+    for (const corner of corners) {
+      const avgValue = this.getAverageRegionValue(
+        grayscale,
+        imageWidth,
+        corner.startY,
+        corner.startX,
+        cornerSize,
+        cornerSize
+      );
+      if (avgValue < darkestValue) {
+        darkestValue = avgValue;
+        darkestCorner = corner.name;
+      }
+    }
+
+    const rotationMap: { [key: string]: number } = {
+      'top-left': 0,
+      'top-right': 90,
+      'bottom-right': 180,
+      'bottom-left': 270,
+    };
+
+    return rotationMap[darkestCorner] || 0;
+  }
+
+  /**
+   * Get average pixel value in a region
+   */
+  private getAverageRegionValue(
+    grayscale: Uint8Array,
+    imageWidth: number,
+    startY: number,
+    startX: number,
+    width: number,
+    height: number
+  ): number {
+    let sum = 0;
+    let count = 0;
+
+    for (let dy = 0; dy < height; dy++) {
+      for (let dx = 0; dx < width; dx++) {
+        const px = startX + dx;
+        const py = startY + dy;
+        if (px >= 0 && py >= 0 && py < grayscale.length / imageWidth && px < imageWidth) {
+          sum += grayscale[py * imageWidth + px];
+          count++;
+        }
+      }
+    }
+
+    return count > 0 ? sum / count : 255;
   }
 }
 

@@ -3,6 +3,7 @@ import { View, StyleSheet, Alert, Button } from 'react-native';
 import LiveCameraFeed from '../components/LiveCameraFeed';
 import MarkerDetectionService from '../services/MarkerDetectionService';
 import { validateMarker1, isDuplicateMarker } from '../utils/markerValidation';
+import { processMarkerImage } from '../utils/imageProcessing';
 import { DetectedMarker } from '../types/index';
 
 interface CameraScreenProps {
@@ -80,13 +81,25 @@ export const CameraScreen: React.FC<CameraScreenProps> = ({ onMarkersComplete })
           return;
         }
 
-        // Step 5: Create marker object
+        // Step 5: Process image to exactly 300x300px
+        const rotationAngle = detectionResult.marker?.angle || 0;
+        const markerBounds = detectionResult.marker ? {
+          x: detectionResult.marker.x,
+          y: detectionResult.marker.y,
+          width: detectionResult.marker.width,
+          height: detectionResult.marker.height,
+        } : undefined;
+
+        const cleanBase64 = base64Image.replace(/^data:image\/\w+;base64,/, '');
+        const processedResult = await processMarkerImage(cleanBase64, markerBounds, rotationAngle);
+
+        // Step 6: Create marker object
         const newMarker: DetectedMarker = {
           id: `marker_${Date.now()}_${Math.random()}`,
-          imageBase64: base64Image,
+          imageBase64: processedResult.imageBase64,
           timestamp: Date.now(),
           confidence: validationResult.confidence,
-          rotationAngle: detectionResult.marker?.angle || 0,
+          rotationAngle,
         };
 
         const processingTime = performance.now() - startTime;
@@ -163,15 +176,21 @@ export const CameraScreen: React.FC<CameraScreenProps> = ({ onMarkersComplete })
 };
 
 /**
- * Convert base64 string to Uint8Array buffer
+ * Convert base64 string to Uint8Array buffer with error handling
  */
 function base64ToBuffer(base64: string): Uint8Array {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
+  try {
+    const cleanBase64 = base64.replace(/^data:image\/\w+;base64,/, '');
+    const binaryString = atob(cleanBase64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+  } catch (error) {
+    console.error('Error decoding base64:', error);
+    return new Uint8Array(0);
   }
-  return bytes;
 }
 
 const styles = StyleSheet.create({
