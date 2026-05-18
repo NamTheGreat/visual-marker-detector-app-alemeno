@@ -122,7 +122,12 @@ eas build --platform android --type apk
 ```
 
 ### APK Output
-The generated `app-release.apk` file is located in the `apk/` directory at the root of the project. It is ready for installation on Android devices with:
+*Note: Because the compiled APK exceeds GitHub's 100MB file limit, it is not included directly in the source code repository.*
+
+**To download the APK for testing:**
+Please go to the **[Releases](../../releases)** section of this GitHub repository to download the `app-release.apk` file.
+
+It is ready for installation on Android devices with:
 - Minimum Android API: 26 (Android 8.0)
 - Target Android API: 34+ (Android 14+)
 - Camera permission required at runtime
